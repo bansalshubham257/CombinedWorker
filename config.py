@@ -15,4 +15,4 @@ class Config:
     MARKET_OPEN = time(9, 15)  # 09:15 AM
     MARKET_CLOSE = time(21, 30)  # 03:30 PM
 
-    TRADING_DAYS = {0, 1, 2, 3, 4}  # Monday to Friday
+    TRADING_DAYS = {0, 1, 2, 3, 4, 5}  # Monday to Friday
