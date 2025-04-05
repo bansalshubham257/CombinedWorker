@@ -353,7 +353,7 @@ class OptionChainService:
             now = datetime.now(IST)
 
             # Clear old data at market open
-            if (now.weekday() < 7 and Config.MARKET_OPEN >= now.time() <= Config.MARKET_CLOSE and
+            if (now.weekday() < 5 and Config.MARKET_OPEN >= now.time() <= Config.MARKET_CLOSE and
                     (last_clear_date is None or last_clear_date != now.date())):
                 try:
                     self.database.clear_old_data()
@@ -363,7 +363,7 @@ class OptionChainService:
                     print(f"Failed to clear old data: {e}")
 
             # Process during market hours
-            if now.weekday() < 7 and Config.MARKET_OPEN <= now.time() <= Config.MARKET_CLOSE:
+            if now.weekday() < 5 and Config.MARKET_OPEN <= now.time() <= Config.MARKET_CLOSE:
                 try:
                     self._fetch_and_store_orders()
                     time.sleep(30)  # Run every 30 seconds
