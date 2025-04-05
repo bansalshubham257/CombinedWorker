@@ -8,10 +8,10 @@ import pytz
 from datetime import datetime
 import threading
 import time
-from .services.option_chain import OptionChainService
-from .services.market_data import MarketDataService
-from .services.stock_analysis import StockAnalysisService
-from .services.database import DatabaseService
+from option_chain import OptionChainService
+from market_data import MarketDataService
+from stock_analysis import StockAnalysisService
+from database import DatabaseService
 from config import Config
 
 app = Flask(__name__)
