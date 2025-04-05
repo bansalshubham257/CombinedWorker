@@ -6,7 +6,7 @@ import requests
 import pytz
 from datetime import datetime
 from config import Config
-from ption_chain import OptionChainService
+from option_chain import OptionChainService
 
 class MarketDataService:
     def __init__(self, database_service=None, option_chain_service=None):
