@@ -28,6 +28,7 @@ class MarketDataService:
         self.database = database_service
         self.update_interval = 300  # 5 minutes
         self.last_update = 0
+        print("market data init done")
 
     def is_market_open(self):
         ist = pytz.timezone('Asia/Kolkata')
