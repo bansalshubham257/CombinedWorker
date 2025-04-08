@@ -46,14 +46,10 @@ def analyze():
 
 @app.route('/get-orders', methods=['GET'])
 def get_orders():
-    if not market_data_service.is_market_open():
-        return jsonify({'status': 'Market is closed'})
     return jsonify(database_service.get_options_orders())
 
 @app.route('/get-futures-orders', methods=['GET'])
 def get_futures_orders():
-    if not market_data_service.is_market_open():
-        return jsonify({'status': 'Market is closed'})
     return jsonify(database_service.get_futures_orders())
 
 @app.route('/get_fno_stocks', methods=['GET'])
@@ -146,19 +142,8 @@ if __name__ == "__main__":
         now = datetime.now(ist)
         current_time = now.time()
         is_weekday = now.weekday() < 8  #
-        if is_weekday and (Config.MARKET_OPEN <= current_time <= Config.MARKET_CLOSE):
-            print("Market is open, starting background workers...")
-            run_background_workers()
-        else:
-            if not is_weekday:
-                print("Market closed (weekend)")
-            else:
-                print(f"Market closed (current time: {current_time})")
-
-            # Sleep until next market open
-            sleep_seconds = market_data_service.get_seconds_until_next_open()
-            print(f"Sleeping for {sleep_seconds//3600}h {(sleep_seconds%3600)//60}m until next market open")
-            time.sleep(sleep_seconds)
+        print("Market is open, starting background workers...")
+        run_background_workers()
     else:
         print("Starting web service ONLY")
         port = int(os.environ.get("PORT", 10000))
@@ -167,7 +152,7 @@ if __name__ == "__main__":
         print("After calling DB Service")
         if db.test_connection():
             print("✅ Database connection successful")
-    
+
             # Test basic query
             with db._get_cursor() as cur:
                 cur.execute("SELECT current_database()")
