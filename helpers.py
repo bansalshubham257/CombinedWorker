@@ -33,20 +33,6 @@ class Helpers:
         return dt.astimezone(pytz.timezone('Asia/Kolkata')).strftime(fmt)
 
     @staticmethod
-    def is_market_open() -> bool:
-        """Check if Indian stock market is open"""
-        ist = pytz.timezone('Asia/Kolkata')
-        now = datetime.now(ist)
-        market_open = datetime.strptime("09:15", "%H:%M").time()
-        market_close = datetime.strptime("15:30", "%H:%M").time()
-
-        # Market is closed on weekends
-        if now.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
-            return False
-
-        return market_open <= now.time() <= market_close
-
-    @staticmethod
     def get_yfinance_data(symbol: str, period: str = "1d", interval: str = "1m") -> Optional[pd.DataFrame]:
         """Get data from Yahoo Finance with error handling"""
         try:
