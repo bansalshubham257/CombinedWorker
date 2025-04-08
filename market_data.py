@@ -23,52 +23,11 @@ class MarketDataService:
             'RELIANCE.NS', 'HDFCBANK.NS', 'TCS.NS', 'BHARTIARTL.NS', 'ICICIBANK.NS',
             'SBIN.NS', 'INFY.NS', 'BAJFINANCE.NS', 'HINDUNILVR.NS', 'ITC.NS'
         ]
-        self.market_open = Config.MARKET_OPEN
-        self.market_close = Config.MARKET_CLOSE
         self.database = database_service
         self.update_interval = 300  # 5 minutes
         self.last_update = 0
         print("market data init done")
 
-    def is_market_open(self):
-        ist = pytz.timezone('Asia/Kolkata')
-        now = datetime.now(ist)
-
-        # Market is closed on weekends
-        if now.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
-            return False
-
-        # Check market hours from config
-        current_time = now.time()
-        return self.market_open <= current_time <= self.market_close
-
-    def get_seconds_until_next_open(self):
-        """Accurately calculates seconds until next market open (IST)"""
-        ist = pytz.timezone('Asia/Kolkata')
-        now = datetime.now(ist)
-        current_time = now.time()
-    
-        # Case 1: If market is currently open
-        if self.is_market_open():
-            return 0
-    
-        # Case 2: Before market open today (same day)
-        if now.weekday() < 5 and current_time < self.market_open:
-            next_open = ist.localize(datetime.combine(now.date(), self.market_open))
-            return (next_open - now).total_seconds()
-    
-        # Case 3: After market close today - next open is next trading day
-        days_to_add = 1
-        while True:
-            next_day = now + timedelta(days=days_to_add)
-            if next_day.weekday() < 5:  # Monday-Friday
-                next_open = ist.localize(datetime.combine(
-                    next_day.date(),
-                    self.market_open
-                ))
-                return (next_open - now).total_seconds()
-            days_to_add += 1
-            
     def update_all_market_data(self):
         """Update all market data in one go"""
         current_time = time.time()
