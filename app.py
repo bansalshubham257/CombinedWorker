@@ -140,6 +140,7 @@ def run_background_workers():
         time.sleep(3600)
 
 if __name__ == "__main__":
+    print("Starting main method")
     if os.getenv('BACKGROUND_WORKER', 'false').lower() == 'true':
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
