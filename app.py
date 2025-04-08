@@ -144,7 +144,7 @@ if __name__ == "__main__":
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         current_time = now.time()
-        is_weekday = now.weekday() < 7  #
+        is_weekday = now.weekday() < 8  #
         if is_weekday and (Config.MARKET_OPEN <= current_time <= Config.MARKET_CLOSE):
             print("Market is open, starting background workers...")
             run_background_workers()
