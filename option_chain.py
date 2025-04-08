@@ -25,6 +25,7 @@ class OptionChainService:
         self.max_retries = max_retries
         self._load_instruments_with_retry()
         self.fno_stocks = self._load_fno_stocks()
+        print("option chain data init done")
         self.database = DatabaseService()
 
 
