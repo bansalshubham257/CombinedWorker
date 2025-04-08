@@ -21,6 +21,7 @@ CORS(app, resources={r"/*": {"origins": [
     "https://bansalshubham257.github.io"
 ]}})
 
+
 # Initialize services
 database_service = DatabaseService()
 option_chain_service = OptionChainService()
