@@ -20,6 +20,7 @@ class DatabaseService:
         }
         self.max_retries = max_retries
         self.retry_delay = retry_delay
+        print("databse init done")
 
     def test_connection(self):
         """Test database connection"""
