@@ -161,7 +161,9 @@ if __name__ == "__main__":
     else:
         print("Starting web service ONLY")
         port = int(os.environ.get("PORT", 10000))
+        print("Starting DB connection")
         db = DatabaseService()
+        print("After calling DB Service")
         if db.test_connection():
             print("✅ Database connection successful")
     
