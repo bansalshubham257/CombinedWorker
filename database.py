@@ -131,7 +131,7 @@ class DatabaseService:
                 WHERE symbol = %s AND expiry_date = %s
                   AND strike_price = %s AND option_type = %s
                 ORDER BY display_time
-            """, (stock, expiry, strike, option_type, oi, volume))
+            """, (stock, expiry, strike, option_type))
 
             data = [{
                 'time': r[0], 'oi': float(r[1]) if r[1] else 0,
