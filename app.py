@@ -183,8 +183,8 @@ def get_oi_extremes():
             cur.execute("""
                 SELECT symbol, strike, option_type as type,
                        absolute_oi, oi_change, timestamp
-                FROM buildup_results
-                WHERE result_type = 'oi_analytics'
+                FROM fno_analytics
+                WHERE analytics_type = 'oi_analytics'
                 ORDER BY 
                     CASE WHEN category = 'oi_gainer' THEN 0 ELSE 1 END,
                     ABS(oi_change) DESC
