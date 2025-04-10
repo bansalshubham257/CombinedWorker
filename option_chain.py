@@ -12,15 +12,13 @@ from decimal import Decimal
 from typing import Dict, Optional
 from database import DatabaseService
 from config import Config
+from psycopg2.extras import execute_batch
 
 class OptionChainService:
     def __init__(self, max_retries=3):
         self.BASE_URL = "https://assets.upstox.com/market-quote/instruments/exchange"
         self.UPSTOX_BASE_URL = "https://api.upstox.com"
         self.symbol_to_instrument = {}
-        self.market_open = Config.MARKET_OPEN
-        self.market_close = Config.MARKET_CLOSE
-        self.trading_days = Config.TRADING_DAYS
         self.instruments_data = None
         self.max_retries = max_retries
         self._load_instruments_with_retry()
@@ -352,8 +350,7 @@ class OptionChainService:
             now = datetime.now(IST)
 
             # Clear old data at market open
-             if (now.weekday() < 5 and Config.MARKET_OPEN >= now.time() <= Config.MARKET_CLOSE and
-                    (last_clear_date is None or last_clear_date != now.date())):
+            if (last_clear_date is None or last_clear_date != now.date()):
                 try:
                     self.database.clear_old_data()
                     last_clear_date = now.date()
@@ -361,13 +358,13 @@ class OptionChainService:
                 except Exception as e:
                     print(f"Failed to clear old data: {e}")
 
-            if now.weekday() < 5 and Config.MARKET_OPEN <= now.time() <= Config.MARKET_CLOSE:
-                try:
-                    self._fetch_and_store_orders()
-                    time.sleep(30)  # Run every 30 seconds
-                except Exception as e:
-                    print(f"Script error: {e}")
-                    time.sleep(60)
+            # Process during market hours
+            try:
+                self._fetch_and_store_orders()
+                time.sleep(30)  # Run every 30 seconds
+            except Exception as e:
+                print(f"Script error: {e}")
+                time.sleep(60)
 
     def detect_buildups(self, lookback_minutes=30):
         """Detect long/short buildups in F&O stocks"""
@@ -400,6 +397,9 @@ class OptionChainService:
                 continue
         return buildups
 
+
+    # In OptionChainService class:
+
     def run_analytics_worker(self):
         """Combined worker for all F&O analytics"""
         while True:
@@ -407,56 +407,60 @@ class OptionChainService:
                 # 1. Run all analytics
                 buildups = self.detect_buildups()
                 oi_analytics = self.detect_oi_extremes()
-                # 2. Store all results
+
+                # 2. Store all results in the new table
+                self.database.save_buildup_results({
+                    'futures_long_buildup': buildups['futures_long_buildup'],
+                    'futures_short_buildup': buildups['futures_short_buildup'],
+                    'options_long_buildup': buildups['options_long_buildup'],
+                    'options_short_buildup': buildups['options_short_buildup']
+                })
+
+                # Also store OI analytics
+                oi_data = []
+                for item in oi_analytics['oi_gainers']:
+                    oi_data.append({
+                        'symbol': item['symbol'],
+                        'result_type': 'oi_gainer',
+                        'category': 'oi_gainer',
+                        'strike': item.get('strike', 0),
+                        'option_type': item.get('type', 'FUT'),
+                        'oi_change': item['oi_change'],
+                        'absolute_oi': item['oi'],
+                        'timestamp': item['timestamp']
+                    })
+
+                for item in oi_analytics['oi_losers']:
+                    oi_data.append({
+                        'symbol': item['symbol'],
+                        'result_type': 'oi_loser',
+                        'category': 'oi_loser',
+                        'strike': item.get('strike', 0),
+                        'option_type': item.get('type', 'FUT'),
+                        'oi_change': item['oi_change'],
+                        'absolute_oi': item['oi'],
+                        'timestamp': item['timestamp']
+                    })
+
                 with self.database._get_cursor() as cur:
-                    # Clear old results (or use UPDATE for incremental updates)
-                    #cur.execute("TRUNCATE TABLE fno_analytics")
-                    # Store buildups
-                    for cat, items in [
-                        ('futures_long', buildups['futures_long_buildup']),
-                        ('futures_short', buildups['futures_short_buildup']),
-                        ('options_long', buildups['options_long_buildup']),
-                        ('options_short', buildups['options_short_buildup'])
-                    ]:
-                        for item in items:
-                            cur.execute("""
-                                INSERT INTO fno_analytics
-                                (symbol, analytics_type, category, strike, option_type,
-                                 price_change, oi_change, volume_change, absolute_oi, timestamp)
-                                VALUES (%s, 'buildup', %s, %s, %s, %s, %s, %s, %s, %s)
-                            """, (
-                                item['symbol'],
-                                cat,
-                                item.get('strike', 0),
-                                item.get('type', 'FUT'),
-                                item.get('price_change', 0),
-                                item.get('oi_change', 0),
-                                item.get('volume_change', 0),
-                                item.get('oi', 0),  # For futures
-                                item['timestamp']
-                            ))
-                    # Store OI extremes
-                    for item in oi_analytics['oi_gainers'] + oi_analytics['oi_losers']:
-                        category = 'oi_gainer' if item['oi_change'] >= 0 else 'oi_loser'
-                        cur.execute("""
-                            INSERT INTO fno_analytics
-                            (symbol, analytics_type, category, strike, option_type,
-                             oi_change, absolute_oi, timestamp)
-                            VALUES (%s, 'oi_analytics', %s, %s, %s, %s, %s, %s)
-                        """, (
-                            item['symbol'],
-                            category,
-                            item.get('strike', 0),
-                            item.get('type', 'FUT'),
-                            item['oi_change'],
-                            item['oi'],
-                            item['timestamp']
-                        ))
+                    execute_batch(cur, """
+                        INSERT INTO buildup_results 
+                        (symbol, result_type, category, strike, option_type,
+                         oi_change, absolute_oi, timestamp)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """, [
+                        (item['symbol'], item['result_type'], item['category'],
+                         item['strike'], item['option_type'],
+                         item['oi_change'], item['absolute_oi'], item['timestamp'])
+                        for item in oi_data
+                    ], page_size=100)
+
                 time.sleep(300)  # Run every 5 minutes
-    
+
             except Exception as e:
                 print(f"Error in analytics worker: {e}")
                 time.sleep(60)
+
 
     def detect_oi_extremes(self, lookback_minutes=30, top_n=10):
         """Detect top OI gainers and losers with fixed query"""
