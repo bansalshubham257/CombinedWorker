@@ -46,10 +46,14 @@ def analyze():
 
 @app.route('/get-orders', methods=['GET'])
 def get_orders():
+    if not market_data_service.is_market_open():
+        return jsonify({'status': 'Market is closed'})
     return jsonify(database_service.get_options_orders())
 
 @app.route('/get-futures-orders', methods=['GET'])
 def get_futures_orders():
+    if not market_data_service.is_market_open():
+        return jsonify({'status': 'Market is closed'})
     return jsonify(database_service.get_futures_orders())
 
 @app.route('/get_fno_stocks', methods=['GET'])
@@ -246,7 +250,7 @@ def get_oi_extremes():
     except Exception as e:
         logging.error(f"Error fetching OI extremes: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-    
+
     
 def run_option_chain_worker():
     """Background worker for option chain processing"""
@@ -273,9 +277,20 @@ if __name__ == "__main__":
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         current_time = now.time()
-        is_weekday = now.weekday() < 8  #
-        print("Market is open, starting background workers...")
-        run_background_workers()
+        is_weekday = now.weekday() < 5  #
+        if is_weekday and (Config.MARKET_OPEN <= current_time <= Config.MARKET_CLOSE):
+            print("Market is open, starting background workers...")
+            run_background_workers()
+        else:
+            if not is_weekday:
+                print("Market closed (weekend)")
+            else:
+                print(f"Market closed (current time: {current_time})")
+
+            # Sleep until next market open
+            sleep_seconds = market_data_service.get_seconds_until_next_open()
+            print(f"Sleeping for {sleep_seconds//3600}h {(sleep_seconds%3600)//60}m until next market open")
+            time.sleep(sleep_seconds)
     else:
         print("Starting web service ONLY")
         port = int(os.environ.get("PORT", 10000))
