@@ -18,6 +18,9 @@ class OptionChainService:
         self.BASE_URL = "https://assets.upstox.com/market-quote/instruments/exchange"
         self.UPSTOX_BASE_URL = "https://api.upstox.com"
         self.symbol_to_instrument = {}
+        self.market_open = Config.MARKET_OPEN
+        self.market_close = Config.MARKET_CLOSE
+        self.trading_days = Config.TRADING_DAYS
         self.instruments_data = None
         self.max_retries = max_retries
         self._load_instruments_with_retry()
@@ -349,7 +352,8 @@ class OptionChainService:
             now = datetime.now(IST)
 
             # Clear old data at market open
-            if (last_clear_date is None or last_clear_date != now.date()):
+             if (now.weekday() < 5 and Config.MARKET_OPEN >= now.time() <= Config.MARKET_CLOSE and
+                    (last_clear_date is None or last_clear_date != now.date())):
                 try:
                     self.database.clear_old_data()
                     last_clear_date = now.date()
@@ -357,13 +361,13 @@ class OptionChainService:
                 except Exception as e:
                     print(f"Failed to clear old data: {e}")
 
-            # Process during market hours
-            try:
-                self._fetch_and_store_orders()
-                time.sleep(30)  # Run every 30 seconds
-            except Exception as e:
-                print(f"Script error: {e}")
-                time.sleep(60)
+            if now.weekday() < 5 and Config.MARKET_OPEN <= now.time() <= Config.MARKET_CLOSE:
+                try:
+                    self._fetch_and_store_orders()
+                    time.sleep(30)  # Run every 30 seconds
+                except Exception as e:
+                    print(f"Script error: {e}")
+                    time.sleep(60)
 
     def detect_buildups(self, lookback_minutes=30):
         """Detect long/short buildups in F&O stocks"""
