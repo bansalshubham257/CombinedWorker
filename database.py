@@ -246,9 +246,11 @@ class DatabaseService:
         print("inside clear_old_data")
         with self._get_cursor() as cur:
             print("cur", cur)
-            #cur.execute("DELETE FROM options_orders")
-            #cur.execute("DELETE FROM futures_orders")
-            #cur.execute("DELETE FROM oi_volume_history")
+            cur.execute("DELETE FROM options_orders")
+            cur.execute("DELETE FROM futures_orders")
+            cur.execute("DELETE FROM oi_volume_history")
+            cur.execute("DELETE FROM buildup_results")
+            cur.execute("DELETE FROM fno_analytics")
 
 
     def save_market_data(self, data_type, data):
