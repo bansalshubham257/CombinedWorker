@@ -50,8 +50,6 @@ def get_orders():
 
 @app.route('/get-futures-orders', methods=['GET'])
 def get_futures_orders():
-    if not market_data_service.is_market_open():
-        return jsonify({'status': 'Market is closed'})
     return jsonify(database_service.get_futures_orders())
 
 @app.route('/get_fno_stocks', methods=['GET'])
@@ -168,40 +166,76 @@ def get_fno_analytics():
     except Exception as e:
         logging.error(f"Error fetching analytics: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-    
+
+
 @app.route('/api/oi-extremes', methods=['GET'])
 def get_oi_extremes():
     try:
         limit = int(request.args.get('limit', 10))
         with database_service._get_cursor() as cur:
+            # Get OI extremes from new table
             cur.execute("""
                 SELECT symbol, strike, option_type as type,
-                       absolute_oi, oi_change, timestamp
-                FROM fno_analytics
-                WHERE analytics_type = 'oi_analytics'
+                       absolute_oi, oi_change, volume_change, 
+                       timestamp
+                FROM buildup_results
+                WHERE result_type IN ('oi_gainer', 'oi_loser')
                 ORDER BY 
-                    CASE WHEN category = 'oi_gainer' THEN 0 ELSE 1 END,
+                    CASE WHEN result_type = 'oi_gainer' THEN 0 ELSE 1 END,
                     ABS(oi_change) DESC
                 LIMIT %s
-            """, (limit,))
+            """, (limit * 2,))
 
             results = {
                 'oi_gainers': [],
-                'oi_losers': []
+                'oi_losers': [],
+                'volume_gainers': [],
+                'volume_losers': []
             }
+
             for row in cur.fetchall():
                 item = {
                     'symbol': row[0],
-                    'strike': float(row[1]),
+                    'strike': float(row[1]) if row[1] else 0,
                     'type': row[2],
                     'oi': int(row[3]),
                     'oi_change': float(row[4]),
-                    'timestamp': row[5]
+                    'volume_change': float(row[5]) if row[5] is not None else 0,
+                    'timestamp': row[6]
                 }
                 if item['oi_change'] >= 0:
                     results['oi_gainers'].append(item)
                 else:
                     results['oi_losers'].append(item)
+
+            # Get volume extremes from new table
+            cur.execute("""
+                SELECT symbol, strike, option_type as type,
+                       absolute_oi, oi_change, volume_change, 
+                       timestamp
+                FROM buildup_results
+                WHERE result_type = 'buildup'
+                AND volume_change IS NOT NULL
+                ORDER BY volume_change DESC
+                LIMIT %s
+            """, (limit * 2,))
+
+            volume_data = []
+            for row in cur.fetchall():
+                item = {
+                    'symbol': row[0],
+                    'strike': float(row[1]) if row[1] else 0,
+                    'type': row[2],
+                    'oi': int(row[3]),
+                    'oi_change': float(row[4]),
+                    'volume_change': float(row[5]),
+                    'timestamp': row[6]
+                }
+                volume_data.append(item)
+
+            if volume_data:
+                results['volume_gainers'] = volume_data[:limit]
+                results['volume_losers'] = volume_data[-limit:][::-1]
 
             return jsonify({
                 "status": "success",
@@ -212,8 +246,8 @@ def get_oi_extremes():
     except Exception as e:
         logging.error(f"Error fetching OI extremes: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-
+    
+    
 def run_option_chain_worker():
     """Background worker for option chain processing"""
     option_chain_service.run_market_processing()
@@ -239,27 +273,16 @@ if __name__ == "__main__":
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         current_time = now.time()
-        is_weekday = now.weekday() < 5  #
-        if is_weekday and (Config.MARKET_OPEN <= current_time <= Config.MARKET_CLOSE):
-            print("Market is open, starting background workers...")
-            run_background_workers()
-        else:
-            if not is_weekday:
-                print("Market closed (weekend)")
-            else:
-                print(f"Market closed (current time: {current_time})")
-
-            # Sleep until next market open
-            sleep_seconds = market_data_service.get_seconds_until_next_open()
-            print(f"Sleeping for {sleep_seconds//3600}h {(sleep_seconds%3600)//60}m until next market open")
-            time.sleep(sleep_seconds)
+        is_weekday = now.weekday() < 8  #
+        print("Market is open, starting background workers...")
+        run_background_workers()
     else:
         print("Starting web service ONLY")
         port = int(os.environ.get("PORT", 10000))
         db = DatabaseService()
         if db.test_connection():
             print("✅ Database connection successful")
-    
+
             # Test basic query
             with db._get_cursor() as cur:
                 cur.execute("SELECT current_database()")
