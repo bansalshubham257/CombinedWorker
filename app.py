@@ -11,7 +11,10 @@ from option_chain import OptionChainService
 from market_data import MarketDataService
 from stock_analysis import StockAnalysisService
 from database import DatabaseService
+from scanner import ScannerService
 from config import Config
+
+import yfinance as yf
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": [
@@ -29,6 +32,8 @@ market_data_service = MarketDataService(
     option_chain_service=option_chain_service
 )
 stock_analysis_service = StockAnalysisService()
+
+scanner_service = ScannerService(database_service, option_chain_service)
 
 
 # API Routes
