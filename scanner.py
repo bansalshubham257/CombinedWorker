@@ -6,8 +6,8 @@ import os
 # Add correct imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services.database import DatabaseService
-from services.option_chain import OptionChainService
+from database import DatabaseService
+from option_chain import OptionChainService
 
 class ScannerService:
     def __init__(self, database_service, option_chain_service):
