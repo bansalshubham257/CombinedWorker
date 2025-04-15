@@ -569,13 +569,15 @@ class DatabaseService:
             if len(df) > 1:
                 df['macd_line'], df['macd_signal'], df['macd_histogram'] = ta.MACD(df['Close'])
                 try:
-                    # Technical indicator calculation
                     df['adx'] = ta.ADX(df['High'], df['Low'], df['Close'], timeperiod=14)
+                    # Calculate +DI and -DI separately with the same timeperiod
+                    df['adx_di_positive'] = ta.PLUS_DI(df['High'], df['Low'], df['Close'], timeperiod=14)
+                    df['adx_di_negative'] = ta.MINUS_DI(df['High'], df['Low'], df['Close'], timeperiod=14)
                 except Exception as e:
-                    print(f"Error calculating ADX: {str(e)}")
+                    print(f"Error calculating ADX indicators: {str(e)}")
                     df['adx'] = None
-                df['adx_di_positive'] = ta.PLUS_DI(df['High'], df['Low'], df['Close'])
-                df['adx_di_negative'] = ta.MINUS_DI(df['High'], df['Low'], df['Close'])
+                    df['adx_di_positive'] = None
+                    df['adx_di_negative'] = None
                 
                 # Enhanced Bollinger Bands calculation to match TradingView implementation
                 # Using SMA as basis with 2.0 standard deviations by default
