@@ -5,7 +5,7 @@ from functools import lru_cache
 
 import pandas as pd
 import psycopg2
-#import talib
+import talib
 from psycopg2._psycopg import OperationalError
 from psycopg2.extras import execute_batch
 from decimal import Decimal
