@@ -5,6 +5,7 @@ from functools import lru_cache
 
 import pandas as pd
 import psycopg2
+from services.custom_ta import ta
 from psycopg2._psycopg import OperationalError
 from psycopg2.extras import execute_batch
 from decimal import Decimal
@@ -567,7 +568,12 @@ class DatabaseService:
 
             if len(df) > 1:
                 df['macd_line'], df['macd_signal'], df['macd_histogram'] = ta.MACD(df['Close'])
-                df['adx'] = ta.ADX(df['High'], df['Low'], df['Close'])
+                try:
+                    # Technical indicator calculation
+                    df['adx'] = ta.ADX(df['High'], df['Low'], df['Close'])
+                except Exception as e:
+                    print(f"Error calculating ADX: {str(e)}")
+                    df['adx'] = None
                 df['adx_di_positive'] = ta.PLUS_DI(df['High'], df['Low'], df['Close'])
                 df['adx_di_negative'] = ta.MINUS_DI(df['High'], df['Low'], df['Close'])
                 
@@ -609,6 +615,7 @@ class DatabaseService:
 
                 # Calculate Bollinger %B
                 #df['Bollinger_B'] = (df['Close'] - df['lower_bollinger']) / (df['upper_bollinger'] - df['lower_bollinger'])
+
 
             # Calculate Supertrend
             if len(df) > 1:
@@ -1113,3 +1120,10 @@ class DatabaseService:
         elif isinstance(value, dict):
             return {k: self._convert_numpy_types(v) for k, v in value.items()}
         return value
+
+
+
+
+
+
+
