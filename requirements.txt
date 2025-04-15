@@ -1,8 +1,10 @@
 flask
 flask-cors
 requests
+pandas
 gunicorn
 datetime
+numpy
 redis
 ta
 yfinance==0.2.54
