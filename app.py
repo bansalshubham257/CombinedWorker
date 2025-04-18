@@ -595,7 +595,7 @@ def run_background_workers():
     stock_data_thread.start()
     print("Background workers started successfully")
 
-    # Keep main thread alive
+    # Keep main thread alive 
     while True:
         time.sleep(3600)
 
