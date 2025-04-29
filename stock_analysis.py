@@ -9,7 +9,7 @@ from bokeh.layouts import column
 from decimal import Decimal
 import pytz
 from datetime import datetime, timedelta
-from services.database import DatabaseService  # Import DatabaseService
+from database import DatabaseService  # Import DatabaseService
 import concurrent.futures
 import time
 
