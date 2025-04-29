@@ -862,12 +862,12 @@ def run_background_workers():
     stock_data_thread = threading.Thread(target=run_stock_data_updater, daemon=True)
     db_clearing_thread = threading.Thread(target=run_database_clearing_worker, daemon=True)
     
-    market_data_thread.start()
-    option_chain_thread.start()
-    oi_buildup_thread.start()
-    #combined_data_thread.start()
-    stock_data_thread.start()
-    db_clearing_thread.start()  # Start the new clearing worker thread
+    #market_data_thread.start()
+    #option_chain_thread.start()
+    #oi_buildup_thread.start()
+    combined_data_thread.start()
+    #stock_data_thread.start()
+    #db_clearing_thread.start()  # Start the new clearing worker thread
     
     print("Background workers started successfully")
 
