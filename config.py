@@ -38,11 +38,14 @@ class Config:
         
         # 12:00 PM buffer window (11:57 AM to 12:03 PM)
         
-        time(11, 50),
+        time(11, 30),
 
-        time(14, 25),
+        time(13, 00),
         # 3:00 PM buffer window (2:57 PM to 3:03 PM)
         
-        time(15, 25)
+        time(14, 30),
+
+        time(16, 00)
+        
         
     ]
